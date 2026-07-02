@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Review Sentiment Analysis — Notebook Explained</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --card: #21253a;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --border: #2e3550;
+    --code-bg: #131720;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #1a1d27 0%, #12152a 50%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 32px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% -10%, rgba(108,99,255,.25), transparent);
+    pointer-events: none;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(108,99,255,.18);
+    border: 1px solid rgba(108,99,255,.4);
+    color: #a09cf7;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 14px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--muted); max-width: 640px; margin: 0 auto 28px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: .82rem;
+    color: var(--muted);
+  }
+  .pill strong { color: var(--text); }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 56px 0 0; }
+  section:last-of-type { padding-bottom: 80px; }
+
+  /* ── SECTION HEADER ── */
+  .section-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .s1 { background: rgba(108,99,255,.2); color: var(--accent); border: 1px solid var(--accent); }
+  .s2 { background: rgba(0,212,170,.15); color: var(--accent2); border: 1px solid var(--accent2); }
+  .s3 { background: rgba(255,107,107,.15); color: var(--accent3); border: 1px solid var(--accent3); }
+  .s4 { background: rgba(255,209,102,.15); color: var(--accent4); border: 1px solid var(--accent4); }
+  .s5 { background: rgba(108,99,255,.2); color: #c084fc; border: 1px solid #c084fc; }
+  .s6 { background: rgba(0,212,170,.15); color: var(--accent2); border: 1px solid var(--accent2); }
+  .s7 { background: rgba(255,107,107,.15); color: var(--accent3); border: 1px solid var(--accent3); }
+
+  .section-tag h2 { font-size: 1.35rem; font-weight: 700; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 18px;
+  }
+  .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+  .card p, .card li { color: var(--muted); font-size: .95rem; }
+  .card ul { padding-left: 20px; }
+  .card ul li { margin-bottom: 4px; }
+
+  /* ── ANALOGY BOX ── */
+  .analogy {
+    background: linear-gradient(135deg, rgba(108,99,255,.08), rgba(0,212,170,.06));
+    border: 1px solid rgba(108,99,255,.25);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .analogy .icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+  .analogy-body strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; }
+  .analogy-body p { color: var(--muted); font-size: .93rem; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    overflow-x: auto;
+  }
+  .code-block pre {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .82rem;
+    color: #a6accd;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .kw { color: #c084fc; }
+  .fn { color: #7dd3fc; }
+  .st { color: #86efac; }
+  .cm { color: #4b5563; font-style: italic; }
+  .nm { color: #fde68a; }
+
+  /* ── PIPELINE VISUAL ── */
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    margin: 20px 0;
+  }
+  .pipe-step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+    min-width: 120px;
+    flex: 1;
+  }
+  .pipe-step .ps-icon { font-size: 1.5rem; }
+  .pipe-step .ps-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+  .pipe-arrow {
+    color: var(--muted);
+    font-size: 1.2rem;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── LABEL GRID ── */
+  .label-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .label-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: .85rem;
+  }
+  .label-chip .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── MODEL ARCH ── */
+  .model-arch {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin: 16px 0;
+  }
+  .layer {
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    font-size: .88rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .layer-name { font-weight: 600; }
+  .layer-detail { color: var(--muted); font-size: .8rem; }
+  .l-input { background: rgba(108,99,255,.15); border: 1px solid rgba(108,99,255,.3); }
+  .l-dense { background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.25); }
+  .l-drop  { background: rgba(255,209,102,.1); border: 1px solid rgba(255,209,102,.25); }
+  .l-out   { background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.3); }
+  .l-arrow { text-align: center; color: var(--muted); font-size: .8rem; padding: 2px 0; }
+
+  /* ── EXAMPLE REVIEW ── */
+  .review-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 14px 0;
+  }
+  .review-text { font-style: italic; color: var(--muted); margin-bottom: 14px; font-size: .93rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag {
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .tag-pos { background: rgba(0,212,170,.15); color: var(--accent2); border: 1px solid rgba(0,212,170,.3); }
+  .tag-cat { background: rgba(108,99,255,.15); color: #a09cf7; border: 1px solid rgba(108,99,255,.3); }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  /* ── SUMMARY TABLE ── */
+  .summary-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .summary-table th {
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .summary-table td:first-child { color: var(--text); font-weight: 500; }
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .82rem;
+  }
+
+  @media (max-width: 600px) {
+    .pipeline { flex-direction: column; }
+    .pipe-arrow { transform: rotate(90deg); }
+    .pipe-step { min-width: unset; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div class="hero">
+  <div class="badge">Notebook Explainer · NLP · Deep Learning</div>
+  <h1>Product Review <span>Sentiment Analysis</span></h1>
+  <p>A plain-English walkthrough of how this notebook reads customer reviews and automatically figures out <em>what</em> they're talking about — and whether they liked it.</p>
+  <div class="pill-row">
+    <div class="pill"><strong>6,136</strong> training reviews</div>
+    <div class="pill"><strong>12</strong> labels predicted</div>
+    <div class="pill"><strong>Neural Network</strong> (Keras)</div>
+    <div class="pill"><strong>TF-IDF</strong> text features</div>
+    <div class="pill"><strong>Cross-Validation</strong> 10-fold × 3</div>
+  </div>
+</div>
+
+<!-- ══════════════ BODY ══════════════ -->
+<div class="container">
+
+  <!-- ── SECTION 0: What's the Big Picture? ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s1">🎯</div>
+      <h2>What Is This Notebook Trying To Do?</h2>
+    </div>
+
+    <div class="card">
+      <p>Imagine you work at a company that sells plumbing fixtures, ceiling fans, and tools on Amazon. Every day, thousands of customers leave reviews. Reading them all manually is impossible. This notebook builds an <strong style="color:var(--text)">automatic classifier</strong> that reads a review and answers two questions:</p>
+      <ul style="margin-top:12px;">
+        <li><strong style="color:var(--text)">What aspect</strong> of the product is the customer talking about? (Quality? Price? Installation?)</li>
+        <li><strong style="color:var(--text)">Is the review positive or negative?</strong> (Polarity)</li>
+      </ul>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🍕</div>
+      <div class="analogy-body">
+        <strong>Real-world analogy</strong>
+        <p>Think of a restaurant critic's review: <em>"The pasta was overcooked but the service was excellent and the price was fair."</em> A human instantly sees three topics (food, service, price) and their sentiments (bad, good, good). This notebook teaches a computer to do exactly that — for product reviews.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>The 12 Labels It Predicts</h3>
+      <p style="margin-bottom:14px;">For each review, the model predicts whether 12 different labels apply (1 = mentioned, 0 = not mentioned):</p>
+      <div class="label-grid">
+        <div class="label-chip"><div class="dot" style="background:#6c63ff"></div>Components</div>
+        <div class="label-chip"><div class="dot" style="background:#00d4aa"></div>Delivery &amp; Support</div>
+        <div class="label-chip"><div class="dot" style="background:#ff6b6b"></div>Design &amp; Aesthetics</div>
+        <div class="label-chip"><div class="dot" style="background:#ffd166"></div>Dimensions</div>
+        <div class="label-chip"><div class="dot" style="background:#c084fc"></div>Features</div>
+        <div class="label-chip"><div class="dot" style="background:#38bdf8"></div>Functionality</div>
+        <div class="label-chip"><div class="dot" style="background:#fb923c"></div>Installation</div>
+        <div class="label-chip"><div class="dot" style="background:#4ade80"></div>Material</div>
+        <div class="label-chip"><div class="dot" style="background:#f472b6"></div>Price</div>
+        <div class="label-chip"><div class="dot" style="background:#a78bfa"></div>Quality</div>
+        <div class="label-chip"><div class="dot" style="background:#34d399"></div>Usability</div>
+        <div class="label-chip"><div class="dot" style="background:#f87171"></div>Polarity 😊/😞</div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 1: Loading Data ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s1">1</div>
+      <h2>Step 1 — Loading the Data</h2>
+    </div>
+
+    <div class="card">
+      <p>The notebook loads a CSV file called <code style="color:var(--accent2);background:var(--code-bg);padding:1px 6px;border-radius:4px">train.csv</code> containing <strong style="color:var(--text)">6,136 customer reviews</strong>. Each row is one review, with 12 binary columns telling us which topics/sentiments human annotators tagged it with.</p>
+    </div>
+
+    <div class="code-block"><pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt      <span class="cm"># for charts</span>
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns               <span class="cm"># for prettier charts</span>
+
+data = pd.<span class="fn">read_csv</span>(<span class="st">"/content/train.csv"</span>)
+data.<span class="fn">head</span>()                          <span class="cm"># peek at first 5 rows</span></pre></div>
+
+    <div class="review-card">
+      <p style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Example row from the training data</p>
+      <div class="review-text">"Excellent ceiling fan brace. Easy to install and very sturdy. Great quality!"</div>
+      <div class="tags">
+        <span class="tag tag-cat">Installation ✓</span>
+        <span class="tag tag-cat">Quality ✓</span>
+        <span class="tag tag-pos">Polarity = Positive ✓</span>
+      </div>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">📋</div>
+      <div class="analogy-body">
+        <strong>Analogy: The Spreadsheet</strong>
+        <p>Picture a giant Excel sheet. Column A has the raw review text. Columns B through M are checkboxes that a human went through and ticked. The machine's job is to learn the pattern between the text and those checkboxes so it can do it automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 2: Exploring the Data ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s2">2</div>
+      <h2>Step 2 — Exploring &amp; Understanding the Data</h2>
+    </div>
+
+    <div class="card">
+      <h3>Checking for missing values</h3>
+      <p>The code runs <code style="color:var(--accent2);background:var(--code-bg);padding:1px 6px;border-radius:4px">data.isnull().sum()</code> to see if any reviews or labels are missing. A missing review would be like a blank form — useless for training. The training data had no missing values in the labels.</p>
+    </div>
+
+    <div class="card">
+      <h3>Plotting label distribution</h3>
+      <p>A bar chart shows how often each label appears. This is important: if 95% of reviews are positive but only 5% negative, the model might just always predict "positive" and still look 95% accurate — but it would be useless. Checking the balance helps avoid this trap.</p>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">⚖️</div>
+      <div class="analogy-body">
+        <strong>The Class Imbalance Problem</strong>
+        <p>Imagine a spam filter trained on 990 normal emails and 10 spam emails. If it says "not spam" for everything, it's right 99% of the time — but completely fails its job. Checking label counts is the first warning sign for this issue.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 3: Text Cleaning ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s3">3</div>
+      <h2>Step 3 — Cleaning the Text</h2>
+    </div>
+
+    <div class="card">
+      <p>Raw customer text is messy. Before a machine can learn from it, we need to tidy it up. The notebook does two things:</p>
+    </div>
+
+    <div class="card" style="border-left: 3px solid var(--accent);">
+      <h3>3a. Expanding contractions</h3>
+      <p>Words like <em>"can't"</em> → <em>"can not"</em>, <em>"I'm"</em> → <em>"I am"</em>. This prevents the model from treating <em>"can't"</em> and <em>"cannot"</em> as two completely different words.</p>
+      <div class="code-block" style="margin-top:12px;"><pre><span class="kw">def</span> <span class="fn">clean_text</span>(text):
+    text = text.<span class="fn">lower</span>()
+    text = re.<span class="fn">sub</span>(<span class="st">r"can't"</span>, <span class="st">"can not "</span>, text)
+    text = re.<span class="fn">sub</span>(<span class="st">r"n't"</span>,   <span class="st">" not "</span>,    text)
+    text = re.<span class="fn">sub</span>(<span class="st">r"i'm"</span>,   <span class="st">"i am "</span>,    text)
+    <span class="cm"># ... and more contractions</span>
+    <span class="kw">return</span> text</pre></div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid var(--accent2);">
+      <h3>3b. Removing stop words</h3>
+      <p>Stop words are ultra-common words like <em>"the", "is", "and", "for"</em> that carry no useful meaning for classification. Removing them reduces noise and speeds things up.</p>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🧹</div>
+      <div class="analogy-body">
+        <strong>Analogy: Editing a Speech</strong>
+        <p>Before analyzing what a speech is about, you'd strip filler words like "um", "uh", "basically", "you know." What's left — the actual nouns, verbs, and adjectives — tells you the real content. That's exactly what removing stop words does.</p>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;">Before cleaning</p>
+      <div class="review-text">"For some reason everybody complains and I'm complaining now about my toilet that I just bought..."</div>
+      <p style="font-size:.78rem;color:var(--muted);margin:12px 0 8px;text-transform:uppercase;letter-spacing:.06em;">After cleaning (stop words removed)</p>
+      <div class="review-text" style="color:var(--accent2)">"reason everybody complains i am complaining toilet bought..."</div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 4: TF-IDF ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s4">4</div>
+      <h2>Step 4 — Converting Text to Numbers (TF-IDF)</h2>
+    </div>
+
+    <div class="card">
+      <p>Neural networks can't read words — they only understand numbers. <strong style="color:var(--text)">TF-IDF (Term Frequency–Inverse Document Frequency)</strong> is the translator. It turns each review into a row of 250 numbers, where each number represents the importance of a particular word or phrase in that review.</p>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🎵</div>
+      <div class="analogy-body">
+        <strong>Analogy: A Music Equaliser</strong>
+        <p>Think of TF-IDF like an audio equalizer with 250 sliders. Each slider represents a word. If a review contains the word "installation" a lot (but "installation" is rare across all reviews), that slider shoots up high. If it contains "good" (common everywhere), that slider stays low. The resulting "audio fingerprint" of 250 numbers uniquely describes the review's content.</p>
+      </div>
+    </div>
+
+    <div class="code-block"><pre><span class="kw">from</span> sklearn.feature_extraction.text <span class="kw">import</span> TfidfVectorizer
+
+vectorizer = <span class="fn">TfidfVectorizer</span>(
+    min_df=<span class="nm">20</span>,          <span class="cm"># ignore words appearing in fewer than 20 reviews</span>
+    ngram_range=(<span class="nm">1</span>,<span class="nm">4</span>),  <span class="cm"># consider single words AND phrases up to 4 words long</span>
+    max_features=<span class="nm">250</span>   <span class="cm"># keep only the top 250 most informative features</span>
+)
+X = vectorizer.<span class="fn">transform</span>(X)  <span class="cm"># each review → a row of 250 numbers</span></pre></div>
+
+    <div class="card">
+      <h3>Why n-grams up to 4?</h3>
+      <p>Single words miss context. "not good" means the opposite of "good." By looking at phrases (n-grams) of up to 4 words, the model captures these subtle patterns. <em>"easy to install"</em> as a phrase is much more informative than the three words separately.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 5: The Neural Network ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s5">5</div>
+      <h2>Step 5 — Building the Neural Network</h2>
+    </div>
+
+    <div class="card">
+      <p>The notebook builds a small but effective <strong style="color:var(--text)">feed-forward neural network</strong> using Keras/TensorFlow. It takes the 250 TF-IDF numbers as input and outputs 12 probability scores — one for each label.</p>
+    </div>
+
+    <div class="model-arch">
+      <p style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">Neural Network Architecture</p>
+      <div class="layer l-input">
+        <span class="layer-name">Input Layer</span>
+        <span class="layer-detail">250 TF-IDF features → 64 neurons</span>
+      </div>
+      <div class="l-arrow">▼ ReLU activation (decides which neurons "fire")</div>
+      <div class="layer l-drop">
+        <span class="layer-name">Dropout (20%)</span>
+        <span class="layer-detail">Randomly turns off 20% of neurons during training</span>
+      </div>
+      <div class="l-arrow">▼ prevents overfitting</div>
+      <div class="layer l-dense">
+        <span class="layer-name">Hidden Layer</span>
+        <span class="layer-detail">64 neurons → 64 neurons</span>
+      </div>
+      <div class="l-arrow">▼ ReLU activation</div>
+      <div class="layer l-drop">
+        <span class="layer-name">Dropout (20%)</span>
+        <span class="layer-detail">Another regularisation layer</span>
+      </div>
+      <div class="l-arrow">▼</div>
+      <div class="layer l-out">
+        <span class="layer-name">Output Layer (Sigmoid)</span>
+        <span class="layer-detail">12 neurons → 12 probabilities (0.0 → 1.0 each)</span>
+      </div>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🧠</div>
+      <div class="analogy-body">
+        <strong>Analogy: A Team of Specialists</strong>
+        <p>Imagine Layer 1 is a team of 64 junior analysts who each scan the review for different signals. They pass notes to Layer 2 (another 64 analysts), who look for patterns <em>in the patterns</em>. Finally, the output team of 12 specialists each give a verdict: "I think this review is about Installation — 87% confident."</p>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--accent4);">
+      <h3>Why Dropout?</h3>
+      <p>Dropout randomly "switches off" 20% of neurons during each training pass. This stops the network from memorising the training data (overfitting). <strong style="color:var(--text)">Analogy:</strong> It's like studying for an exam where 20% of your notes are randomly removed each time. You're forced to truly understand the material rather than memorise specific examples.</p>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--accent2);">
+      <h3>Why Sigmoid output?</h3>
+      <p>Each label is independent — a review can simultaneously be about Quality AND Price AND be positive. Sigmoid outputs a number between 0 and 1 for each label independently (unlike Softmax, which forces labels to compete). A score > 0.5 means the label is predicted as present.</p>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--accent3);">
+      <h3>Early Stopping</h3>
+      <p>Training stops automatically if the loss doesn't improve by 0.05 for 5 consecutive rounds (epochs). <strong style="color:var(--text)">Analogy:</strong> Like stopping a workout when you're no longer gaining strength — no point burning energy for zero gain.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 6: Evaluation ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s6">6</div>
+      <h2>Step 6 — Evaluating with Cross-Validation</h2>
+    </div>
+
+    <div class="card">
+      <p>The model is evaluated using <strong style="color:var(--text)">Repeated K-Fold Cross-Validation</strong> (10 splits × 3 repeats = 30 total training runs). This gives a robust estimate of real-world performance.</p>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🏫</div>
+      <div class="analogy-body">
+        <strong>Analogy: The Exam Rotation</strong>
+        <p>Imagine a class of 30 students. Instead of testing the teacher on just one class, you rotate: teach 27 students, test on the remaining 3, then repeat with a different group of 3. Do this 10 times across the class, then repeat 3 times with the students shuffled. You get a much more honest picture of how well the teacher actually teaches.</p>
+      </div>
+    </div>
+
+    <div class="code-block"><pre>cv = <span class="fn">RepeatedKFold</span>(n_splits=<span class="nm">10</span>, n_repeats=<span class="nm">3</span>, random_state=<span class="nm">1</span>)
+<span class="cm"># 10 folds × 3 repeats = 30 model evaluations</span>
+
+<span class="kw">for</span> train_ix, test_ix <span class="kw">in</span> cv.<span class="fn">split</span>(X):
+    model.<span class="fn">fit</span>(X_train, y_train, epochs=<span class="nm">50</span>, callbacks=callback)
+    train_log_loss = <span class="fn">log_loss</span>(y_train, yhat_train)
+    test_log_loss  = <span class="fn">log_loss</span>(y_test,  yhat_test)</pre></div>
+
+    <div class="card">
+      <h3>Log Loss — What Is It?</h3>
+      <p>Log loss (cross-entropy) measures how confident and correct the model's probability predictions are. A perfect model has log loss = 0. The closer to 0, the better. Comparing train vs test log loss tells us if the model is overfitting (training loss much lower than test loss = memorising, not learning).</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SECTION 7: Prediction ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s7">7</div>
+      <h2>Step 7 — Making Predictions on New Reviews</h2>
+    </div>
+
+    <div class="card">
+      <p>The trained model is applied to <strong style="color:var(--text)">2,631 unseen test reviews</strong> (from <code style="color:var(--accent2);background:var(--code-bg);padding:1px 6px;border-radius:4px">test.csv</code>) that have no labels. The model predicts a probability for each of the 12 labels for every review.</p>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="ps-icon">📝</div>
+        <div class="ps-label">Raw test review text</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">🧹</div>
+        <div class="ps-label">Clean &amp; remove stop words</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">🔢</div>
+        <div class="ps-label">TF-IDF vectorize (250 features)</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">🤖</div>
+        <div class="ps-label">Neural network predicts</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">📊</div>
+        <div class="ps-label">12 probability scores per review</div>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <p style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Example test review → predicted scores</p>
+      <div class="review-text">"Made of very thin cheap metal, broke on very first use."</div>
+      <div class="tags">
+        <span class="tag tag-cat">Material: 0.72 ✓</span>
+        <span class="tag tag-cat">Quality: 0.68 ✓</span>
+        <span class="tag" style="background:rgba(255,107,107,.15);color:var(--accent3);border:1px solid rgba(255,107,107,.3)">Polarity: 0.08 → Negative 😞</span>
+      </div>
+    </div>
+
+    <div class="analogy">
+      <div class="icon">🩺</div>
+      <div class="analogy-body">
+        <strong>Analogy: A Doctor's Probability Diagnosis</strong>
+        <p>A good doctor doesn't just say "healthy" or "sick." They say "85% likely flu, 12% likely cold, 3% allergies." Similarly, the model gives probabilities for all 12 labels simultaneously — not a single hard yes/no. A threshold (typically 0.5) is then applied to decide the final answer.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ── SUMMARY TABLE ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s1">📌</div>
+      <h2>Full Pipeline Summary</h2>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>What Happens</th>
+            <th>Tool Used</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1. Load Data</td><td>Read 6,136 reviews + 12 binary labels from CSV</td><td>pandas</td></tr>
+          <tr><td>2. Explore</td><td>Check shape, missing values, label distribution charts</td><td>pandas, seaborn</td></tr>
+          <tr><td>3. Clean Text</td><td>Expand contractions, lowercase, remove stop words</td><td>re, nltk</td></tr>
+          <tr><td>4. Vectorise</td><td>Convert text to 250 TF-IDF numerical features</td><td>scikit-learn</td></tr>
+          <tr><td>5. Build Model</td><td>2-layer neural net (64→64→12), Dropout 20%, Sigmoid output</td><td>Keras / TensorFlow</td></tr>
+          <tr><td>6. Train &amp; Evaluate</td><td>10-fold × 3 repeated cross-validation, log-loss metric</td><td>scikit-learn, Keras</td></tr>
+          <tr><td>7. Predict</td><td>Apply to 2,631 unseen test reviews, output probabilities</td><td>Keras</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── KEY TAKEAWAYS ── -->
+  <section>
+    <div class="section-tag">
+      <div class="step-num s2">💡</div>
+      <h2>Key Takeaways</h2>
+    </div>
+    <div class="card">
+      <ul>
+        <li style="margin-bottom:10px;"><strong style="color:var(--text)">Multi-label classification</strong> — Unlike most classifiers that predict one category, this model predicts 12 labels simultaneously. A review can be about Quality AND Price AND be positive all at once.</li>
+        <li style="margin-bottom:10px;"><strong style="color:var(--text)">TF-IDF is fast &amp; interpretable</strong> — While modern transformer models (like BERT) would likely perform better, TF-IDF + shallow neural network is lightweight, fast to train, and still effective.</li>
+        <li style="margin-bottom:10px;"><strong style="color:var(--text)">Cross-validation gives honest scores</strong> — Testing on data the model was trained on is cheating. 30 rounds of cross-validation gives a realistic picture of real-world accuracy.</li>
+        <li><strong style="color:var(--text)">Early stopping prevents waste</strong> — If the model isn't improving, training halts. This saves compute time and avoids overfitting to quirks in the training data.</li>
+      </ul>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  Auto-generated explainer for <code>Untitled16.ipynb</code> &nbsp;·&nbsp; Product Review Multi-Label Sentiment Classification
+</footer>
+
+</body>
+</html>
